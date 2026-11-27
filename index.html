@@ -887,15 +887,18 @@ function doConnect(silent=false){
   client.on('error',()=>{ setConnStatus('disconnected'); if(!silent) document.getElementById('cfg-status').textContent='✗ Connection failed.'; try{client.end();}catch(e){} });
   client.on('offline',()=>{ setConnStatus('disconnected'); if(deviceOnline){deviceOnline=false;setDeviceStatus(false);} });
   client.on('message',(topic,payload)=>{
-    const val=payload.toString(),now=new Date();
-    document.getElementById('last-update').textContent='Last update · '+fmtTime(now);
-    if      (topic==='esp32/status')      { lastDeviceSeen=Date.now(); if(!deviceOnline){deviceOnline=true;setDeviceStatus(true);} }
-    else if (topic==='esp32/soil')        { const v=parseInt(val); updateSoil(v); pendingSoil=v; }
-    else if (topic==='esp32/temperature') { const v=parseFloat(val); updateTemp(v); pendingTemp=v; }
-    else if (topic==='esp32/humidity')    { const v=parseFloat(val); updateHum(v);  pendingHum=v; }
-    else if (topic==='esp32/pump')        { updatePump(val==='1'); pendingPump=val==='1'; }
-    else if (topic==='esp32/motion')      { updatePIR(val==='1',now); }
-  });
+  const val=payload.toString(),now=new Date();
+  document.getElementById('last-update').textContent='Last update · '+fmtTime(now);
+  if      (topic==='esp32/status')      {
+    if (val==='online') { if(!deviceOnline){deviceOnline=true;setDeviceStatus(true);} }
+    else                { deviceOnline=false; setDeviceStatus(false); }
+  }
+  else if (topic==='esp32/soil')        { const v=parseInt(val); updateSoil(v); pendingSoil=v; }
+  else if (topic==='esp32/temperature') { const v=parseFloat(val); updateTemp(v); pendingTemp=v; }
+  else if (topic==='esp32/humidity')    { const v=parseFloat(val); updateHum(v);  pendingHum=v; }
+  else if (topic==='esp32/pump')        { updatePump(val==='1'); pendingPump=val==='1'; }
+  else if (topic==='esp32/motion')      { updatePIR(val==='1',now); }
+});
 }
 function doLogout(){
   if(client){ try{client.end(true);}catch(e){} client=null; }
@@ -974,16 +977,10 @@ function openPirModal(){
 function closePirModal(){ document.getElementById('pir-modal').classList.remove('open'); }
 function handleModalClick(e){ if(e.target===document.getElementById('pir-modal')) closePirModal(); }
 
+
 // ── TICKERS ──────────────────────────────────────────────────────────────────
 setInterval(()=>{ if(!startTime) return; document.getElementById('uptime-label').textContent='Uptime '+fmtUptime(Math.floor((Date.now()-startTime)/1000)); },1000);
-if (topic==='esp32/status') {
-  if (val==='online') {
-    if(!deviceOnline){deviceOnline=true;setDeviceStatus(true);}
-  } else {
-    deviceOnline=false;
-    setDeviceStatus(false);
-  }
-}setInterval(()=>{ sbLoadLatestReading(); },60000);
+setInterval(()=>{ sbLoadLatestReading(); },60000);
 
 if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
